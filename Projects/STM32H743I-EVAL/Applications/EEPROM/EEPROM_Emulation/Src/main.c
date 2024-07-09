@@ -18,19 +18,27 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "stm32h7xx_hal.h"
+#include "stm32h7xx.h"
+#include "stdint.h"
+#include "core_cm7.h"
 /** @addtogroup EEPROM_Emulation
   * @{
   */
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+#define SetStatus_LED0(n)		(n?HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET):HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET))
+#define LED0_Toggle         (HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_1)) 
+#define Light  0u
+#define Dark   1u
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 FLASH_OBProgramInitTypeDef OBInit;
 
 /* Virtual address defined by the user: 0xFFFF value is prohibited */
-uint16_t VirtAddVarTab[NB_OF_VAR] = {0x5555, 0x6666, 0x7777};
-uint16_t VarDataTab[NB_OF_VAR] = {0, 0, 0};
+uint64_t VirtAddVarTab[NB_OF_VAR] = {0x8006300, 0x8006500, 0x8006500};
+uint16_t VarDataTab[NB_OF_VAR] = {0x12, 0x13, 0x14};
 uint16_t VarValue,VarDataTmp = 0;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -64,20 +72,13 @@ int main(void)
 
   /* Configure LED1, LED3 and LED4 */
   BSP_LED_Init(LED1);
-  BSP_LED_Init(LED3);
-  BSP_LED_Init(LED4);
-
-  /* Toggle LED4 */
-  BSP_LED_Toggle(LED4);
   
+#if 1
   /* EEPROM Init */
   if( EE_Init() != EE_OK)
   {
     Error_Handler();
   }
-
-  /* Toggle LED4 */
-  BSP_LED_Toggle(LED4);
   
   /* --- Store successively many values of the three variables in the EEPROM ---*/
   /* Store 0x1000 values of Variable1 in EEPROM */
@@ -112,8 +113,7 @@ int main(void)
     {
       Error_Handler();
     }
-    /* Toggle LED4 */
-    BSP_LED_Toggle(LED4);
+
     /* Sequence 3 */
     if(EE_WriteVariable(VirtAddVarTab[2],  VarValue << 1) != HAL_OK)
     {
@@ -128,8 +128,6 @@ int main(void)
     {
       Error_Handler();
     }
-    /* Toggle LED4 */
-    BSP_LED_Toggle(LED4);
 
   }
 
@@ -150,8 +148,7 @@ int main(void)
     {
       Error_Handler();
     }
-    /* Toggle LED4 */
-    BSP_LED_Toggle(LED4);
+
     
   }
 
@@ -185,9 +182,6 @@ int main(void)
   {
     Error_Handler();
   }
-  /* Toggle LED4 */
-  BSP_LED_Toggle(LED4);
-  
 
   /* Store 0x3000 values of Variable3 in EEPROM */
   for (VarValue = 1; VarValue <= 0x3000; VarValue++)
@@ -205,8 +199,7 @@ int main(void)
     {
       Error_Handler();
     }
-    /* Toggle LED4 */
-    BSP_LED_Toggle(LED4);
+
   }
 
   /* read the last stored variables data*/
@@ -228,8 +221,6 @@ int main(void)
   {
     Error_Handler();
   }
-  /* Toggle LED4 */
-  BSP_LED_Toggle(LED4);
     
   if(EE_ReadVariable(VirtAddVarTab[2], &VarDataTmp) != HAL_OK)
   {
@@ -239,12 +230,33 @@ int main(void)
   {
     Error_Handler();
   }
+#endif
 
   while (1)
   {
-    /* Turn ON LED1 */
-    BSP_LED_On(LED1);
+    SetStatus_LED0(Dark);
+    // delay_ms(2000);/* wait 2000 ms */
+		// SetStatus_LED0(Light);
+    // delay_ms(2000);/* wait 2000 ms */
   }
+}
+
+extern uint32_t SystemCoreClock;
+extern uint32_t Sy;
+void delay_ms(uint32_t ms)
+{
+    // 使用 SysTick 定时器实现延迟
+    uint32_t start_ticks = SysTick->VAL;
+    uint32_t ticks_per_ms = (SystemCoreClock / 1000);
+
+    while (ms > 0)
+    {
+        if ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) != 0)
+        {
+            ms--;
+            start_ticks = SysTick->VAL;
+        }
+    }
 }
 
 /**
@@ -298,7 +310,7 @@ static void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLFRACN = 0;
   RCC_OscInitStruct.PLL.PLLP = 2;
   RCC_OscInitStruct.PLL.PLLR = 2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.PLL.PLLQ = 2;
 
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
@@ -325,6 +337,17 @@ static void SystemClock_Config(void)
     Error_Handler();
   }
 
+  /**Configure the Systick interrupt time 
+  */
+  HAL_SYSTICK_Config(SystemCoreClock/1000);
+
+    /**Configure the Systick 
+    */
+  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
+
+  /* SysTick_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+
 }
 
 /**
@@ -335,7 +358,8 @@ static void SystemClock_Config(void)
 static void Error_Handler(void)
 {
   /* Turn ON LED3 */
-  BSP_LED_On(LED3);
+  // BSP_LED_On(LED1);
+  SetStatus_LED0(Light);
   /* Infinite loop */
   while (1)
   {

@@ -208,10 +208,10 @@ typedef struct
 /** @defgroup STM32H743I_EVAL_LOW_LEVEL_LED LOW LEVEL LED
   * @{
   */
-#define LED1_GPIO_PORT                   GPIOF
-#define LED1_GPIO_CLK_ENABLE()           __HAL_RCC_GPIOF_CLK_ENABLE()
-#define LED1_GPIO_CLK_DISABLE()          __HAL_RCC_GPIOF_CLK_DISABLE()
-#define LED1_PIN                         GPIO_PIN_10
+#define LED1_GPIO_PORT                   GPIOB
+#define LED1_GPIO_CLK_ENABLE()           __HAL_RCC_GPIOB_CLK_ENABLE()
+#define LED1_GPIO_CLK_DISABLE()          __HAL_RCC_GPIOB_CLK_DISABLE()
+#define LED1_PIN                         GPIO_PIN_1
 
 #define LED3_GPIO_PORT                   GPIOA
 #define LED3_GPIO_CLK_ENABLE()           __HAL_RCC_GPIOA_CLK_ENABLE()
